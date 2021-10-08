@@ -119,7 +119,7 @@ def use(request):
                     #record the change
                     record_change.append({'payer': line['payer'], 'points': -points})
                     
-                    #update the file
+                    #update the transaction
                     try:
                         transaction = transactions.objects.get(id=line['id'])
                         transaction.points -= points
@@ -139,10 +139,54 @@ def use(request):
 # if the point value < 0, adjust the oldest transaction for the payer
 def adjust(data):
     try:
+        points = data['points']
         # get transactions by payer
-        transaction = transactions.objects.filter(payer=data['payer']).order_by('timestamp')[0]
-        transaction.points = transaction.points + int(data['points'])
-        transaction.save()
+        transaction_adjust = transactions.objects.filter(payer=data['payer']).order_by('timestamp')
+        serializer = TransactionSerializer(transaction_adjust, many=True)
+        
+        #get total amount to adjust
+        total_available = 0
+        for line in serializer.data:
+            total_available +=line['points']
+
+        #check if adjustment is more than what is available
+        if total_available < -points:
+            return False
+        else:
+            for line in serializer.data:
+                if points == 0:
+                    break
+                else:
+
+                    # split up to remove all points from a transaction if the total 
+                    # number of points to be redeemed exceed the transaction
+                    if -points >= int(line['points']) & int(line['points']) >0:
+                        
+                        # subtract the points
+                        points += int(line['points'])
+                        
+                        # update the dataframe with the new transaction value
+                        try:
+                            transaction = transactions.objects.get(id=line['id'])
+                            transaction.points = 0
+                            transaction.save()
+                        except transactions.DoesNotExist:
+                            return HttpResponse(status=404)
+
+                    # if the transaction exceeds the number of points to be redeemed, 
+                    # calcuate the difference and set the transaction to the remainder
+                    elif int(line['points']) > -points:
+                        
+                        #update the transaction
+                        try:
+                            transaction = transactions.objects.get(id=line['id'])
+                            transaction.points += points
+                            transaction.save()
+                        except transactions.DoesNotExist:
+                            return HttpResponse(status=404)
+                        
+                        #set points to zero so we can exit
+                        points = 0
         return True
     except:
         return False
