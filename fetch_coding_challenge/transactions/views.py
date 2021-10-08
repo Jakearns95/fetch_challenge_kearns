@@ -16,11 +16,14 @@ from transactions.serializers import TransactionSerializer
 @require_GET
 def view_all(request):
     if request.method == 'GET':
-        view_transactions = transactions.objects.all()
-        serializer = TransactionSerializer(view_transactions, many=True)
+        try:
+            view_transactions = transactions.objects.all()
+            serializer = TransactionSerializer(view_transactions, many=True)
 
-        # group up all the payers and sum the total number of points for each
-        return JsonResponse(pd.DataFrame(serializer.data).groupby(['payer']).sum()['points'].to_json(), safe=False)
+            # group up all the payers and sum the total number of points for each
+            return JsonResponse(pd.DataFrame(serializer.data).groupby(['payer']).sum()['points'].to_json(), safe=False)
+        except:
+            return HttpResponse('There are no transactions to be viewed')
 
 #this endpoint will add a transaction to the DB - allows one transaction at a time 
 @csrf_exempt
@@ -35,7 +38,7 @@ def add(request):
         except:
             return JsonResponse("Failed to parse timestamp", safe=False)
 
-        # check that the value is positive
+        # check that the value is positive - if it is a first negative value for a payer, throw an error
         try:
             if int(data['points']) < 0:
                 if adjust(data):
