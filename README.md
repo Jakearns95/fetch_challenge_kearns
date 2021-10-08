@@ -1,6 +1,10 @@
 # Jake Kearns Fetch Coding Challnege
 ## Overview
+This application was built with [Django](https://www.djangoproject.com/) a python web framework and is designed for a coding challenge to create, update, and redeem points for one user. The app is ran locally and requries a HTTP request to create, update or redeem points.
 
+Django was used for its ease of use and ability to rapidly develop a prototype locally. I was orignally going to use AWS API gateway with a lambda function but I wanted a user to be able to run this locally without setting up any infrasturcture on AWS. 
+
+Some challenge I faced, outlined in the `Shortcomings` section, was around the serializers I used to verify/update the data and throw errors. In future iterations of this project, I would work to resolve those shortcomings. 
 
 ## Installation
 Once you have cloned this repo, navigate inside the folder and start the virutal enviroment with the following command:
@@ -89,9 +93,20 @@ curl -X POST http://127.0.0.1:8000/transactions/use -H 'Content-Type: applicatio
 
 
 ## Shortcomings/Needs improvement
-- serializer error handling
-- serializer updates
-- negative post request
-- tracking
+- Error Handling
+    - The app has error handling but not to the extent that I would like it. The serializer classes have built in errors that, for the purpose of this challenge, I was unable to get to work correctly. In future iterations I would built in more error handling in custom serializer objects.
 
-## Conclusions
+- Model updates
+    - On a similar path as error handling, I ran into some issues with updating the model through the serializer class when redeeming points. I decdied to circumvent the serializers and edit the models directly which could cause issues down the line since I am not verifing the data.
+
+- Handling negative point requests
+    - In the challenge, it was outlined that the server must be able to take in negative point POST requests to the `add` endpoint. I struggled with this because it seemed more like an adjustment than a transaction. When my app receives a negative point transaction, it will deduct it from the oldest payer with points and not record the transaction - causing a misrepresentation of past transactions.
+
+
+## Credits
+Below is a list of sites I used to help me with this challenge. Check them out, they were pretty useful during this project:
+- https://www.django-rest-framework.org/api-guide/serializers/
+- https://www.django-rest-framework.org/
+
+## License
+[MIT](https://choosealicense.com/licenses/mit/)
