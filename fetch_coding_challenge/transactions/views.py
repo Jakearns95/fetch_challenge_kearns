@@ -38,7 +38,10 @@ def add(request):
         # check that the value is positive
         try:
             if int(data['points']) < 0:
-                return HttpResponse("Please only send positive values")
+                if adjust(data):
+                    return JsonResponse(data, status = 201)
+                else:
+                    return HttpResponse('Failed to adjust transaction')
 
         except:
             return JsonResponse("Failed to parse timestamp", status = 400)
@@ -129,6 +132,17 @@ def use(request):
         parsed_changeds = pd.DataFrame(record_change).groupby(['payer']).sum().reset_index().set_index('payer').T.to_json(orient="records")
 
         return JsonResponse(parsed_changeds, safe=False)
+
+# if the point value < 0, adjust the oldest transaction for the payer
+def adjust(data):
+    try:
+        # get transactions by payer
+        transaction = transactions.objects.filter(payer=data['payer']).order_by('timestamp')[0]
+        transaction.points = transaction.points + int(data['points'])
+        transaction.save()
+        return True
+    except:
+        return False
 
 # reset/delete all records
 @csrf_exempt
